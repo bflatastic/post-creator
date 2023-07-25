@@ -1,137 +1,132 @@
 'use client';
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useState } from 'react';
+import { fabric } from 'fabric';
 
 const CanvasComponent: React.FC = () => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasRef = useRef<fabric.Canvas | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null); // Ref for the container
   const [text, setText] = useState<string>('');
-  const [image, setImage] = useState<HTMLImageElement | null>(null);
-  const [fontSize, setFontSize] = useState<number>(30);
 
-  useEffect(() => {
-    if (canvasRef.current) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
+  // Function to update canvas size on resize
+  const handleResize = () => {
+    if (canvasRef.current && containerRef.current) {
+      const containerWidth = containerRef.current.clientWidth;
+      const containerHeight = containerRef.current.clientHeight;
+      const aspectRatio = 1080 / 1350; // Aspect ratio of 1080x1350
 
-      if (ctx) {
-        // Set initial canvas size
-        canvas.width = 1080;
-        canvas.height = 1350;
+      let canvasWidth, canvasHeight;
+      if (containerWidth / containerHeight > aspectRatio) {
+        // Container is wider than the aspect ratio
+        canvasWidth = containerHeight * aspectRatio;
+        canvasHeight = containerHeight;
+      } else {
+        // Container is taller than the aspect ratio
+        canvasWidth = containerWidth;
+        canvasHeight = containerWidth / aspectRatio;
       }
+
+      // Set the canvas dimensions
+      canvasRef.current.setDimensions({ width: canvasWidth, height: canvasHeight });
+      canvasRef.current.renderAll();
     }
+  };
+
+  // Initialize canvas on mount
+  React.useEffect(() => {
+    if (!canvasRef.current) {
+      const canvas = new fabric.Canvas('canvas', {
+        width: 1080,
+        height: 1350,
+        backgroundColor: '#f0f0f0',
+      });
+      canvasRef.current = canvas;
+      handleResize(); // Set initial canvas size
+      window.addEventListener('resize', handleResize); // Listen for resize events
+    }
+    return () => {
+      window.removeEventListener('resize', handleResize); // Clean up event listener on unmount
+    };
   }, []);
 
-  const drawText = useCallback(() => {
-    if (canvasRef.current) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-
-      if (ctx) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Draw the image first
-        if (image) {
-          const aspectRatio = image.width / image.height;
-          let newWidth = canvas.width;
-          let newHeight = canvas.width / aspectRatio;
-          let y = (canvas.height - newHeight) / 2;
-
-          ctx.drawImage(image, 0, y, newWidth, newHeight);
-        }
-
-        // Then draw the text
-        if (text) {
-          ctx.font = `${fontSize}px Arial`;
-          ctx.fillStyle = '#000';
-          ctx.textAlign = 'center';
-          let y = (canvas.height + fontSize) / 2;
-          ctx.fillText(text, canvas.width / 2, y);
-        }
-      }
-    }
-  }, [image, text, fontSize]);
-
-  const drawImage = useCallback(() => {
-    if (canvasRef.current && image) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-
-      if (ctx) {
-        const aspectRatio = image.width / image.height;
-        let newWidth = canvas.width;
-        let newHeight = canvas.width / aspectRatio;
-        let y = (canvas.height - newHeight) / 2;
-
-        ctx.drawImage(image, 0, y, newWidth, newHeight);
-      }
-    }
-  }, [image]);
-
-  useEffect(() => {
-    // Draw the image when it changes
-    drawImage();
-  }, [image, drawImage]);
-
-  useEffect(() => {
-    // Draw the text when it changes
-    drawText();
-  }, [text, fontSize, drawText]);
-
+  // Function to add an image layer from file
   const handleAddImage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (canvasRef.current) {
-      const newImage = document.createElement('img');
-
-      if (event.target.files && event.target.files[0]) {
-        const file = event.target.files[0];
-        const reader = new FileReader();
-
-        reader.onload = () => {
-          newImage.onload = () => {
-            setImage(newImage);
-          };
-          newImage.src = reader.result as string;
-        };
-        reader.readAsDataURL(file);
-      }
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const url = reader.result as string;
+        fabric.Image.fromURL(
+          url,
+          (img) => {
+            img.scaleToWidth(canvasRef.current!.getWidth());
+            img.scaleToHeight(canvasRef.current!.getHeight());
+            img.set({
+              lockMovementX: false, // Enable horizontal dragging
+              lockMovementY: false, // Enable vertical dragging
+              selectable: false, // Disable selection for the image
+            });
+            canvasRef.current!.add(img);
+            img.sendToBack(); // Place the image behind other objects on the canvas
+            canvasRef.current!.renderAll();
+          },
+          { crossOrigin: 'anonymous' }
+        );
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  const handleFontSizeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFontSize(Number(event.target.value));
-  };
-
-  const handleTextChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Function to update the text on canvas
+  const handleTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(event.target.value);
+    const textObject = canvasRef.current?.getObjects().find((obj) => obj.type === 'i-text') as fabric.IText;
+    if (textObject) {
+      textObject.set('text', event.target.value);
+      canvasRef.current!.renderAll();
+    } else {
+      const newTextBox = new fabric.IText(event.target.value, {
+        left: canvasRef.current!.getWidth() / 2,
+        top: canvasRef.current!.getHeight() / 2,
+        fontFamily: 'Inter', // Set the font to "Inter"
+        fontSize: 30,
+        fill: 'black',
+        originX: 'center',
+        originY: 'center',
+        lockMovementX: true, // Disable horizontal dragging
+        lockMovementY: true, // Disable vertical dragging
+        selectable: false, // Disable selection for the text
+        textAlign: 'center',
+      });
+      canvasRef.current!.add(newTextBox);
+      canvasRef.current!.setActiveObject(newTextBox);
+      canvasRef.current!.renderAll();
+    }
   };
 
-  const handleSaveImage = () => {
-    if (canvasRef.current) {
-      const canvas = canvasRef.current;
-      // Create a data URL of the canvas content
-      const dataUrl = canvas.toDataURL('image/png');
-      // Create a new 'a' element
-      const a = document.createElement('a');
-      // Set the download URL to the data URL
-      a.href = dataUrl;
-      // Set the download attribute to specify filename
-      a.download = 'canvas.png';
-      // Trigger the download by simulating a click
-      a.click();
+  // Function to save the canvas content as PNG
+  const handleSaveCanvas = () => {
+    const dataURL = canvasRef.current?.toDataURL({
+      format: 'png',
+    });
+    if (dataURL) {
+      const link = document.createElement('a');
+      link.href = dataURL;
+      link.download = 'canvas.png';
+      link.click();
     }
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen">
-      <canvas className="md:border-r-2" ref={canvasRef} />
-
-      <div className="p-6">
-        <input type="file" accept="image/*" onChange={handleAddImage} className="w-full shadow-sm text-gray-500 focus:outline-none mb-5" />
-        <input type="number" value={fontSize} onChange={handleFontSizeChange} className="w-full p-3 border-2 rounded-md text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2" min="1" step="1" />
-        <input type="text" value={text} onChange={handleTextChange} className="w-full p-3 border-2 rounded-md text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        <button onClick={handleSaveImage} className="w-full p-3 mt-4 bg-blue-600 text-white rounded-md">
-          Save as Image
-        </button>
+    <div className="flex flex-col items-center mt-4">
+      <div ref={containerRef} className="border ">
+        <canvas width={1080} height={1350} id="canvas" className="h-full w-full" />
       </div>
+      <input type="file" accept="image/*" onChange={handleAddImage} className="mt-4" />
+      <textarea value={text} onChange={handleTextChange} placeholder="Enter text here..." className="mt-2 p-2 border" />
+      <button onClick={handleSaveCanvas} className="mt-2 bg-blue-500 text-white p-2">
+        Save Canvas
+      </button>
     </div>
   );
 };
