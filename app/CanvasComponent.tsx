@@ -80,7 +80,7 @@ const CanvasComponent: React.FC = () => {
               originY: 'center',
               lockMovementX: false, // Enable horizontal dragging
               lockMovementY: false, // Enable vertical dragging
-              selectable: true, // Enable selection for the image to allow replacement
+              selectable: false, // Enable selection for the image to allow replacement
             });
 
             // Remove the existing image if there's one on the canvas
