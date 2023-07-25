@@ -49,7 +49,6 @@ const CanvasComponent: React.FC = () => {
     };
   }, []);
 
-  // Function to add an image layer from file
   const handleAddImage = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -59,13 +58,37 @@ const CanvasComponent: React.FC = () => {
         fabric.Image.fromURL(
           url,
           (img) => {
-            img.scaleToWidth(canvasRef.current!.getWidth());
-            img.scaleToHeight(canvasRef.current!.getHeight());
+            const canvasWidth = canvasRef.current!.getWidth();
+            const canvasHeight = canvasRef.current!.getHeight();
+
+            // Scale the image to cover the canvas
+            const aspectRatio = img.width! / img.height!;
+            const canvasAspectRatio = canvasWidth / canvasHeight;
+
+            if (canvasAspectRatio > aspectRatio) {
+              // Canvas is wider than the image
+              img.scaleToWidth(canvasWidth);
+            } else {
+              // Canvas is taller than the image
+              img.scaleToHeight(canvasHeight);
+            }
+
             img.set({
+              left: canvasWidth / 2,
+              top: canvasHeight / 2,
+              originX: 'center',
+              originY: 'center',
               lockMovementX: false, // Enable horizontal dragging
               lockMovementY: false, // Enable vertical dragging
-              selectable: false, // Disable selection for the image
+              selectable: true, // Enable selection for the image to allow replacement
             });
+
+            // Remove the existing image if there's one on the canvas
+            const existingImage = canvasRef.current!.getObjects('image')[0];
+            if (existingImage) {
+              canvasRef.current!.remove(existingImage);
+            }
+
             canvasRef.current!.add(img);
             img.sendToBack(); // Place the image behind other objects on the canvas
             canvasRef.current!.renderAll();
@@ -90,7 +113,7 @@ const CanvasComponent: React.FC = () => {
         top: canvasRef.current!.getHeight() / 2,
         fontFamily: 'Inter', // Set the font to "Inter"
         fontSize: 30,
-        fill: 'black',
+        fill: 'white',
         originX: 'center',
         originY: 'center',
         lockMovementX: true, // Disable horizontal dragging
@@ -119,8 +142,8 @@ const CanvasComponent: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center mt-4">
-      <div ref={containerRef} className="border ">
-        <canvas width={1080} height={1350} id="canvas" className="h-full w-full" />
+      <div ref={containerRef} className="border">
+        <canvas id="canvas" />
       </div>
       <input type="file" accept="image/*" onChange={handleAddImage} className="mt-4" />
       <textarea value={text} onChange={handleTextChange} placeholder="Enter text here..." className="mt-2 p-2 border" />
