@@ -7,3 +7,9 @@ body,
 :root {
   @apply h-full;
 }
+
+@font-face {
+  font-family: 'Avenir';
+  src: url('./fonts/Avenir-Black.ttf') format('truetype'); /* Replace with the correct path to your custom font file */
+  /* Add more src lines for additional font formats (e.g., woff, woff2) for better browser compatibility */
+}
