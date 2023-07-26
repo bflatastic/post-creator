@@ -8,12 +8,15 @@ const CanvasComponent: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
-  const [windowDimensions, setWindowDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [windowDimensions, setWindowDimensions] = useState({ width: 1080, height: 1350 });
 
   const canvasWidth = 1080;
   const canvasHeight = 1350;
 
   useEffect(() => {
+    // update state to actual window dimensions once component is mounted
+    setWindowDimensions({ width: window.innerWidth, height: window.innerHeight });
+
     const handleResize = () => {
       setWindowDimensions({
         width: window.innerWidth,
