@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { AiFillInstagram } from 'react-icons/ai';
+import { IoTrashBin } from 'react-icons/io5';
 
 const CanvasComponent: React.FC = () => {
   const [inputText, setInputText] = useState('');
@@ -193,6 +194,13 @@ const CanvasComponent: React.FC = () => {
     }
   };
 
+  const handleRemoveUploadedImage: React.MouseEventHandler<HTMLButtonElement> = (event) => {
+    setUploadedImage(null);
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
+  };
+
   const handleSave = async () => {
     // mark as async
     const canvas = canvasRef.current;
@@ -223,7 +231,7 @@ const CanvasComponent: React.FC = () => {
       <div className="p-7 flex flex-col gap-6 w-full max-w-[500px] bg-slate-800 rounded-lg ring-1 ring-slate-900/5 shadow-xl">
         <div className="flex flex-row items-center gap-4">
           <span className="inline-flex items-center justify-center p-2 bg-indigo-500 rounded-lg shadow-lg">
-            <AiFillInstagram size="24" />
+            <AiFillInstagram size="20" />
           </span>
           <h1 className="text-2xl font-bold">Instagram Post Creator</h1>
         </div>
@@ -251,9 +259,19 @@ const CanvasComponent: React.FC = () => {
           <button className="px-4 py-3 rounded-md bg-slate-600 text-white font-semibold hover:bg-slate-700 transition-colors duration-200 text-sm" onClick={() => imageInputRef.current?.click()}>
             Upload Image
           </button>
+
           <button className="px-4 py-3 rounded-md bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors duration-200 text-sm" onClick={handleSave}>
             Save as PNG
           </button>
+
+          {uploadedImage !== null && (
+            <button className=" text-red-400 font-semibold hover:text-red-500 transition-colors duration-200 text-sm" onClick={handleRemoveUploadedImage}>
+              <div className="flex flex-row items-center gap-2">
+                <IoTrashBin size="16" />
+                Remove Image
+              </div>
+            </button>
+          )}
         </div>
       </div>
       <div>
