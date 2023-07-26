@@ -242,7 +242,7 @@ const CanvasComponent: React.FC = () => {
 
   return (
     <div className="flex flex-col xl:flex-row xl:h-screen md:items-center xl:justify-center bg-gray-900">
-      <div className="p-7 flex flex-col gap-6 w-full max-w-[550px] bg-slate-800 rounded-lg ring-1 ring-slate-900/5 shadow-xl">
+      <div className="p-6 flex flex-col gap-6 w-full max-w-[550px] bg-slate-800 rounded-lg ring-1 ring-slate-900/5 shadow-xl">
         <div className="flex flex-row items-center gap-4">
           <span className="inline-flex items-center justify-center p-2 bg-indigo-500 rounded-lg shadow-lg">
             <AiFillInstagram size="25" />
@@ -321,7 +321,7 @@ const CanvasComponent: React.FC = () => {
         </div>
       </div>
       <div>
-        <canvas ref={canvasRef} className="p-7" />
+        <canvas ref={canvasRef} className="p-6" />
       </div>
     </div>
   );
