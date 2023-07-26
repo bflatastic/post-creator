@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { AiFillInstagram } from 'react-icons/ai';
 
 const CanvasComponent: React.FC = () => {
   const [inputText, setInputText] = useState('');
@@ -220,10 +221,16 @@ const CanvasComponent: React.FC = () => {
   return (
     <div className="flex flex-col xl:flex-row xl:h-screen md:items-center xl:justify-center bg-gray-900">
       <div className="p-7 flex flex-col gap-6 w-full max-w-[500px] bg-slate-800 rounded-lg ring-1 ring-slate-900/5 shadow-xl">
-        <h1 className="text-2xl font-bold">Instagram Post Creator</h1>
+        <div className="flex flex-row items-center gap-4">
+          <span className="inline-flex items-center justify-center p-2 bg-indigo-500 rounded-lg shadow-lg">
+            <AiFillInstagram size="24" />
+          </span>
+          <h1 className="text-2xl font-bold">Instagram Post Creator</h1>
+        </div>
+
         <div className="flex flex-col">
           {/* Select Overlay/Static Image */}
-          <label className="mb-2 font-medium text-sm text-slate-400">Select Overlay Image:</label>
+          <label className="mb-2 font-medium text-sm text-slate-400">Select Overlay Image</label>
           <select className="px-3 py-3 rounded-md text-white outline-none bg-slate-600 focus:ring focus:ring-indigo-500" value={selectedStaticImage || ''} onChange={handleStaticImageChange}>
             <option value="">None</option>
             {staticImageOptions.map((option) => (
@@ -236,15 +243,15 @@ const CanvasComponent: React.FC = () => {
         {/* Text field */}
         <div className="flex flex-col">
           <label className="mb-2 font-medium text-sm text-slate-400">Post Text</label>
-          <textarea className="rounded-md p-2 text-white outline-none bg-slate-600 focus:ring focus:ring-indigo-500" onChange={handleTextChange} ref={inputRef} placeholder="Add some text to the post..." />
+          <textarea className="p-3 rounded-md text-white outline-none bg-slate-600 focus:ring focus:ring-indigo-500" onChange={handleTextChange} ref={inputRef} placeholder="Add some text to the post..." />
         </div>
         {/* Buttons */}
         <div className="flex flex-row gap-4">
           <input type="file" accept="image/*" onChange={handleImageChange} ref={imageInputRef} style={{ display: 'none' }} />
-          <button className="px-4 py-3 rounded-md bg-slate-600 text-white font-semibold hover:bg-slate-700 transition-colors duration-200" onClick={() => imageInputRef.current?.click()}>
+          <button className="px-4 py-3 rounded-md bg-slate-600 text-white font-semibold hover:bg-slate-700 transition-colors duration-200 text-sm" onClick={() => imageInputRef.current?.click()}>
             Upload Image
           </button>
-          <button className="px-4 py-3 rounded-md bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors duration-200" onClick={handleSave}>
+          <button className="px-4 py-3 rounded-md bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors duration-200 text-sm" onClick={handleSave}>
             Save as PNG
           </button>
         </div>
