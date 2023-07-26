@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { AiFillInstagram, AiFillFileImage, AiFillSave } from 'react-icons/ai';
+import { AiFillInstagram, AiFillFileImage } from 'react-icons/ai';
 import { IoTrashBin } from 'react-icons/io5';
 import { BiSolidDownload, BiChevronDown, BiChevronUp } from 'react-icons/bi';
 import { v4 as uuidv4 } from 'uuid';
