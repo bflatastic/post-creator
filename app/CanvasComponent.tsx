@@ -1,155 +1,160 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
-import { fabric } from 'fabric';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 
 const CanvasComponent: React.FC = () => {
-  const canvasRef = useRef<fabric.Canvas | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null); // Ref for the container
-  const [text, setText] = useState<string>('');
+  const [inputText, setInputText] = useState('');
+  const [uploadedImage, setUploadedImage] = useState<HTMLImageElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const [windowDimensions, setWindowDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
 
-  // Function to update canvas size on resize
-  const handleResize = () => {
-    if (canvasRef.current && containerRef.current) {
-      const containerWidth = containerRef.current.clientWidth;
-      const containerHeight = containerRef.current.clientHeight;
-      const aspectRatio = 1080 / 1350; // Aspect ratio of 1080x1350
+  const canvasWidth = 1080;
+  const canvasHeight = 1350;
 
-      let canvasWidth, canvasHeight;
-      if (containerWidth / containerHeight > aspectRatio) {
-        // Container is wider than the aspect ratio
-        canvasWidth = containerHeight * aspectRatio;
-        canvasHeight = containerHeight;
-      } else {
-        // Container is taller than the aspect ratio
-        canvasWidth = containerWidth;
-        canvasHeight = containerWidth / aspectRatio;
-      }
-
-      // Set the canvas dimensions
-      canvasRef.current.setDimensions({ width: canvasWidth, height: canvasHeight });
-      canvasRef.current.renderAll();
-    }
-  };
-
-  // Initialize canvas on mount
-  React.useEffect(() => {
-    if (!canvasRef.current) {
-      const canvas = new fabric.Canvas('canvas', {
-        width: 1080,
-        height: 1350,
-        backgroundColor: '#f0f0f0',
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight,
       });
-      canvasRef.current = canvas;
-      handleResize(); // Set initial canvas size
-      window.addEventListener('resize', handleResize); // Listen for resize events
-    }
-    return () => {
-      window.removeEventListener('resize', handleResize); // Clean up event listener on unmount
     };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const handleAddImage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const url = reader.result as string;
-        fabric.Image.fromURL(
-          url,
-          (img) => {
-            const canvasWidth = canvasRef.current!.getWidth();
-            const canvasHeight = canvasRef.current!.getHeight();
+  const drawTextAndImageOnCanvas = useCallback(
+    (ctx: CanvasRenderingContext2D, fontSize: number, width: number, height: number) => {
+      // Clear the canvas
+      ctx.clearRect(0, 0, width, height);
 
-            // Scale the image to cover the canvas
-            const aspectRatio = img.width! / img.height!;
-            const canvasAspectRatio = canvasWidth / canvasHeight;
+      // Draw the image if available
+      if (uploadedImage) {
+        const image = uploadedImage;
 
-            if (canvasAspectRatio > aspectRatio) {
-              // Canvas is wider than the image
-              img.scaleToWidth(canvasWidth);
-            } else {
-              // Canvas is taller than the image
-              img.scaleToHeight(canvasHeight);
-            }
+        // Calculate the image dimensions while maintaining aspect ratio
+        const aspectRatio = image.width / image.height;
+        let drawWidth = width;
+        let drawHeight = width / aspectRatio;
 
-            img.set({
-              left: canvasWidth / 2,
-              top: canvasHeight / 2,
-              originX: 'center',
-              originY: 'center',
-              lockMovementX: false, // Enable horizontal dragging
-              lockMovementY: false, // Enable vertical dragging
-              selectable: false, // Enable selection for the image to allow replacement
-            });
+        if (drawHeight < height) {
+          drawHeight = height;
+          drawWidth = height * aspectRatio;
+        }
 
-            // Remove the existing image if there's one on the canvas
-            const existingImage = canvasRef.current!.getObjects('image')[0];
-            if (existingImage) {
-              canvasRef.current!.remove(existingImage);
-            }
+        // Draw the image to cover the whole canvas
+        ctx.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+      } else {
+        // Draw only the text without an image
+        ctx.fillStyle = '#f0f0f0'; // background color
+        ctx.fillRect(0, 0, width, height);
+      }
 
-            canvasRef.current!.add(img);
-            img.sendToBack(); // Place the image behind other objects on the canvas
-            canvasRef.current!.renderAll();
-          },
-          { crossOrigin: 'anonymous' }
-        );
-      };
-      reader.readAsDataURL(file);
+      // Draw the text
+      ctx.fillStyle = 'black';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = `${fontSize}px Arial`;
+      ctx.fillText(inputText, width / 2, height / 2);
+    },
+    [inputText, uploadedImage]
+  );
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
     }
-  };
 
-  // Function to update the text on canvas
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return;
+    }
+
+    const scaleFactor = Math.min(windowDimensions.width / canvasWidth, windowDimensions.height / canvasHeight);
+
+    const displayWidth = canvasWidth * scaleFactor;
+    const displayHeight = canvasHeight * scaleFactor;
+
+    // adjust display canvas size
+    canvas.style.width = `${displayWidth}px`;
+    canvas.style.height = `${displayHeight}px`;
+
+    // adjust offscreen canvas size
+    canvas.width = displayWidth * window.devicePixelRatio;
+    canvas.height = displayHeight * window.devicePixelRatio;
+
+    // scale context to counter the increase in size due to devicePixelRatio
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+    const fontSize = 50 * scaleFactor; // make font size responsive
+    drawTextAndImageOnCanvas(ctx, fontSize, displayWidth, displayHeight);
+  }, [inputText, windowDimensions, uploadedImage, drawTextAndImageOnCanvas]);
+
   const handleTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(event.target.value);
-    const textObject = canvasRef.current?.getObjects().find((obj) => obj.type === 'i-text') as fabric.IText;
-    if (textObject) {
-      textObject.set('text', event.target.value);
-      canvasRef.current!.renderAll();
-    } else {
-      const newTextBox = new fabric.IText(event.target.value, {
-        left: canvasRef.current!.getWidth() / 2,
-        top: canvasRef.current!.getHeight() / 2,
-        fontFamily: 'Inter', // Set the font to "Inter"
-        fontSize: 30,
-        fill: 'white',
-        originX: 'center',
-        originY: 'center',
-        lockMovementX: true, // Disable horizontal dragging
-        lockMovementY: true, // Disable vertical dragging
-        selectable: false, // Disable selection for the text
-        textAlign: 'center',
-      });
-      canvasRef.current!.add(newTextBox);
-      canvasRef.current!.setActiveObject(newTextBox);
-      canvasRef.current!.renderAll();
+    setInputText(event.target.value);
+  };
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      const image = new Image();
+      image.src = URL.createObjectURL(file);
+      image.onload = () => {
+        setUploadedImage(image);
+      };
     }
   };
 
-  // Function to save the canvas content as PNG
-  const handleSaveCanvas = () => {
-    const dataURL = canvasRef.current?.toDataURL({
-      format: 'png',
-    });
-    if (dataURL) {
-      const link = document.createElement('a');
-      link.href = dataURL;
-      link.download = 'canvas.png';
-      link.click();
+  const handleSave = async () => {
+    // mark as async
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
     }
+
+    const offscreenCanvas = document.createElement('canvas');
+    offscreenCanvas.width = canvasWidth;
+    offscreenCanvas.height = canvasHeight;
+
+    const ctx = offscreenCanvas.getContext('2d');
+    if (!ctx) {
+      return;
+    }
+
+    drawTextAndImageOnCanvas(ctx, 50, canvasWidth, canvasHeight);
+
+    const dataUrl = offscreenCanvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = 'my-image.png';
+    link.href = dataUrl;
+    link.click();
   };
 
   return (
-    <div className="flex flex-col items-center mt-4">
-      <div ref={containerRef} className="border">
-        <canvas id="canvas" />
+    <div className="flex flex-col lg:flex-row h-screen lg:items-center lg:justify-center">
+      <div>
+        <canvas className="lg:border-r-2" ref={canvasRef} />
       </div>
-      <input type="file" accept="image/*" onChange={handleAddImage} className="mt-4" />
-      <textarea value={text} onChange={handleTextChange} placeholder="Enter text here..." className="mt-2 p-2 border" />
-      <button onClick={handleSaveCanvas} className="mt-2 bg-blue-500 text-white p-2">
-        Save Canvas
-      </button>
+
+      <div className="p-6 w-full">
+        <div className="flex flex-col">
+          <label className="mb-2 font-bold text-md text-gray-700">Input Text</label>
+          <textarea className="border-2 rounded p-2 text-gray-700" onChange={handleTextChange} ref={inputRef} placeholder="Add some text to the post..." />
+        </div>
+        <div className="my-4">
+          <input type="file" accept="image/*" onChange={handleImageChange} ref={imageInputRef} style={{ display: 'none' }} />
+          <button className="mt-2 px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200" onClick={() => imageInputRef.current?.click()}>
+            Upload Image
+          </button>
+        </div>
+        <button className="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200" onClick={handleSave}>
+          Save as PNG
+        </button>
+      </div>
     </div>
   );
 };
