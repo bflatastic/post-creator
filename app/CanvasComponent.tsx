@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { AiFillInstagram } from 'react-icons/ai';
+import { AiFillInstagram, AiFillFileImage, AiFillSave } from 'react-icons/ai';
 import { IoTrashBin } from 'react-icons/io5';
+import { BiSolidDownload } from 'react-icons/bi';
 
 const CanvasComponent: React.FC = () => {
   const [inputText, setInputText] = useState('');
@@ -228,10 +229,10 @@ const CanvasComponent: React.FC = () => {
 
   return (
     <div className="flex flex-col xl:flex-row xl:h-screen md:items-center xl:justify-center bg-gray-900">
-      <div className="p-7 flex flex-col gap-6 w-full max-w-[500px] bg-slate-800 rounded-lg ring-1 ring-slate-900/5 shadow-xl">
+      <div className="p-7 flex flex-col gap-6 w-full max-w-[550px] bg-slate-800 rounded-lg ring-1 ring-slate-900/5 shadow-xl">
         <div className="flex flex-row items-center gap-4">
           <span className="inline-flex items-center justify-center p-2 bg-indigo-500 rounded-lg shadow-lg">
-            <AiFillInstagram size="20" />
+            <AiFillInstagram size="25" />
           </span>
           <h1 className="text-2xl font-bold">Instagram Post Creator</h1>
         </div>
@@ -254,19 +255,25 @@ const CanvasComponent: React.FC = () => {
           <textarea className="p-3 rounded-md text-white outline-none bg-slate-600 focus:ring focus:ring-indigo-500" onChange={handleTextChange} ref={inputRef} placeholder="Add some text to the post..." />
         </div>
         {/* Buttons */}
-        <div className="flex flex-row gap-4">
+        <div className="flex flex-col gap-4 lg:flex-row">
           <input type="file" accept="image/*" onChange={handleImageChange} ref={imageInputRef} style={{ display: 'none' }} />
           <button className="px-4 py-3 rounded-md bg-slate-600 text-white font-semibold hover:bg-slate-700 transition-colors duration-200 text-sm" onClick={() => imageInputRef.current?.click()}>
-            Upload Image
+            <div className="flex flex-row items-center gap-2 justify-center">
+              <AiFillFileImage size="16" />
+              Upload Image
+            </div>
           </button>
 
           <button className="px-4 py-3 rounded-md bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors duration-200 text-sm" onClick={handleSave}>
-            Save as PNG
+            <div className="flex flex-row items-center gap-2 justify-center">
+              <BiSolidDownload size="18" />
+              Save as PNG
+            </div>
           </button>
 
           {uploadedImage !== null && (
-            <button className=" text-red-400 font-semibold hover:text-red-500 transition-colors duration-200 text-sm" onClick={handleRemoveUploadedImage}>
-              <div className="flex flex-row items-center gap-2">
+            <button className="py-1 text-red-400 font-semibold hover:text-red-500 transition-colors duration-200 text-sm" onClick={handleRemoveUploadedImage}>
+              <div className="flex flex-row items-center gap-2 justify-center">
                 <IoTrashBin size="16" />
                 Remove Image
               </div>
@@ -275,7 +282,7 @@ const CanvasComponent: React.FC = () => {
         </div>
       </div>
       <div>
-        <canvas ref={canvasRef} className="p-6" />
+        <canvas ref={canvasRef} className="p-7" />
       </div>
     </div>
   );
