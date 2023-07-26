@@ -3,22 +3,28 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { AiFillInstagram, AiFillFileImage, AiFillSave } from 'react-icons/ai';
 import { IoTrashBin } from 'react-icons/io5';
-import { BiSolidDownload } from 'react-icons/bi';
+import { BiSolidDownload, BiChevronDown, BiChevronUp } from 'react-icons/bi';
+import { v4 as uuidv4 } from 'uuid';
 
 const CanvasComponent: React.FC = () => {
-  const [inputText, setInputText] = useState('');
+  const [inputText, setInputText] = useState('Replace this text');
   const [uploadedImage, setUploadedImage] = useState<HTMLImageElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const [windowDimensions, setWindowDimensions] = useState({ width: 1080, height: 1350 });
   const [staticImage, setStaticImage] = useState<HTMLImageElement | null>(null);
+  const [paddingRatio, setPaddingRatio] = useState(0.06);
+  const [fontSize, setFontSize] = useState(50);
+  const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = useState(false);
 
   const canvasWidth = 1080;
   const canvasHeight = 1350;
 
   const staticImageOptions = [
     { name: 'FactBolt', url: '/image/factbolt-overlay.png' },
+    { name: 'TechnoBolt', url: '/image/technobolt-overlay.png' },
+    { name: 'FootBolt', url: '/image/footbolt-overlay.png' },
     // Add more image options here
   ];
   const [selectedStaticImage, setSelectedStaticImage] = useState<string | null>(staticImageOptions[0].url);
@@ -108,34 +114,39 @@ const CanvasComponent: React.FC = () => {
       ctx.font = `${fontSize}px Avenir`; // change the font here
       ctx.shadowColor = 'black'; // color of the shadow
       ctx.shadowBlur = 10; // the blur level of the shadow
-      ctx.shadowOffsetX = 3; // horizontal offset of the shadow
-      ctx.shadowOffsetY = 3; // vertical offset of the shadow
+      ctx.shadowOffsetX = 0; // horizontal offset of the shadow
+      ctx.shadowOffsetY = 0; // vertical offset of the shadow
 
-      const paddingRatio = 0.06;
-      const padding = width * paddingRatio;
+      const textPaddingRatio = paddingRatio;
+      const padding = width * textPaddingRatio;
+      const lineHeight = fontSize * 1.35; // line height for multiline text.
 
-      const lines = inputText.split('\n'); // Split text into lines based on newline characters
+      const words = inputText.split(' ');
+      let line: string[] = [];
+      let lines = [];
 
-      const lineHeight = fontSize * 1.5; // line height for multiline text. You can adjust this value as per your need
+      // Create an array of lines
+      for (let i = 0; i < words.length; i++) {
+        line.push(words[i]);
+        if (ctx.measureText(line.join(' ')).width > width - 2 * padding) {
+          // Remove the last word from the line
+          line.pop();
+
+          // Add the line to the lines array
+          lines.push(line.join(' '));
+
+          // Start a new line with the current word
+          line = [words[i]];
+        }
+      }
+
+      // Add the last line to the lines array
+      lines.push(line.join(' '));
 
       // Draw each line separately
       for (let i = 0; i < lines.length; i++) {
-        const words = lines[i].split(' ');
-        let currentLine = words[0];
-        for (let j = 1; j < words.length; j++) {
-          const word = words[j];
-          const widthWithSpace = ctx.measureText(currentLine + ' ' + word).width;
-          if (widthWithSpace < width - 2 * padding) {
-            currentLine += ' ' + word;
-          } else {
-            // Draw the line if it exceeds the width
-            ctx.fillText(currentLine, width / 2, height / 2 - ((lines.length - 1) * lineHeight) / 2 + i * lineHeight);
-            currentLine = word;
-          }
-        }
-
-        // Draw the last line of the text
-        ctx.fillText(currentLine, width / 2, height / 2 - ((lines.length - 1) * lineHeight) / 2 + i * lineHeight);
+        // Draw the line of the text
+        ctx.fillText(lines[i], width / 2, height / 2 - ((lines.length - 1) * lineHeight) / 2 + i * lineHeight);
       }
 
       // Reset shadow to default state (no shadow)
@@ -144,7 +155,7 @@ const CanvasComponent: React.FC = () => {
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
     },
-    [inputText, staticImage, uploadedImage]
+    [inputText, paddingRatio, staticImage, uploadedImage]
   );
 
   useEffect(() => {
@@ -174,9 +185,9 @@ const CanvasComponent: React.FC = () => {
     // scale context to counter the increase in size due to devicePixelRatio
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
-    const fontSize = 50 * scaleFactor; // make font size responsive
-    drawTextAndImageOnCanvas(ctx, fontSize, displayWidth, displayHeight);
-  }, [inputText, windowDimensions, uploadedImage, drawTextAndImageOnCanvas]);
+    const canvasFontSize = fontSize * scaleFactor; // make font size responsive
+    drawTextAndImageOnCanvas(ctx, canvasFontSize, displayWidth, displayHeight);
+  }, [inputText, windowDimensions, uploadedImage, drawTextAndImageOnCanvas, fontSize]);
 
   const handleTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = event.target.value;
@@ -203,7 +214,9 @@ const CanvasComponent: React.FC = () => {
   };
 
   const handleSave = async () => {
-    // mark as async
+    const uuid = uuidv4();
+    const fileName = `${uuid}.png`;
+
     const canvas = canvasRef.current;
     if (!canvas) {
       return;
@@ -218,11 +231,11 @@ const CanvasComponent: React.FC = () => {
       return;
     }
 
-    drawTextAndImageOnCanvas(ctx, 50, canvasWidth, canvasHeight);
+    drawTextAndImageOnCanvas(ctx, fontSize, canvasWidth, canvasHeight);
 
     const dataUrl = offscreenCanvas.toDataURL('image/png');
     const link = document.createElement('a');
-    link.download = 'my-image.png';
+    link.download = fileName;
     link.href = dataUrl;
     link.click();
   };
@@ -240,22 +253,48 @@ const CanvasComponent: React.FC = () => {
         <div className="flex flex-col">
           {/* Select Overlay/Static Image */}
           <label className="mb-2 font-medium text-sm text-slate-400">Select Overlay Image</label>
-          <select className="px-3 py-3 rounded-md text-white outline-none bg-slate-600 focus:ring focus:ring-indigo-500" value={selectedStaticImage || ''} onChange={handleStaticImageChange}>
-            <option value="">None</option>
-            {staticImageOptions.map((option) => (
-              <option key={option.url} value={option.url}>
-                {option.name}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select className="w-full px-3 py-3 rounded-md text-white outline-none bg-slate-600 focus:ring focus:ring-indigo-500 appearance-none" value={selectedStaticImage || ''} onChange={handleStaticImageChange}>
+              <option value="">None</option>
+              {staticImageOptions.map((option) => (
+                <option key={option.url} value={option.url}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+            <div className="absolute inset-y-0 right-2 pl-3 flex items-center pointer-events-none">
+              <BiChevronDown className="text-white" size="20" />
+            </div>
+          </div>
         </div>
         {/* Text field */}
         <div className="flex flex-col">
           <label className="mb-2 font-medium text-sm text-slate-400">Post Text</label>
-          <textarea className="p-3 rounded-md text-white outline-none bg-slate-600 focus:ring focus:ring-indigo-500" onChange={handleTextChange} ref={inputRef} placeholder="Add some text to the post..." />
+          <textarea rows={3} className="p-3 rounded-md text-white outline-none bg-slate-600 focus:ring focus:ring-indigo-500" onChange={handleTextChange} ref={inputRef} placeholder="Add some text to the post..." />
         </div>
+
+        {/* Advanced Settings Accordion */}
+        <div className="flex flex-col">
+          <div className="flex flex-row items-center cursor-pointer" onClick={() => setIsAdvancedSettingsOpen((prev) => !prev)}>
+            <h5 className="text-sm font-bold text-slate-300">Advanced Settings</h5>
+            {isAdvancedSettingsOpen ? <BiChevronUp size="20" /> : <BiChevronDown size="20" />}
+          </div>
+          {isAdvancedSettingsOpen && (
+            <div className="flex flex-row gap-4 mt-4">
+              <div className="flex flex-col flex-grow">
+                <label className="mb-2 font-medium text-sm text-slate-400">Padding Ratio:</label>
+                <input className="p-3 rounded-md text-white outline-none bg-slate-600 focus:ring focus:ring-indigo-500" type="number" min="0" max="1" step="0.01" value={paddingRatio} onChange={(e) => setPaddingRatio(parseFloat(e.target.value))} />
+              </div>
+              <div className="flex flex-col flex-grow">
+                <label className="mb-2 font-medium text-sm text-slate-400">Font Size:</label>
+                <input className="p-3 rounded-md text-white outline-none bg-slate-600 focus:ring focus:ring-indigo-500" type="number" min="1" max="100" value={fontSize} onChange={(e) => setFontSize(parseInt(e.target.value, 10))} />
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Buttons */}
-        <div className="flex flex-col gap-4 lg:flex-row">
+        <div className="flex flex-col gap-4 lg:flex-row mt-2">
           <input type="file" accept="image/*" onChange={handleImageChange} ref={imageInputRef} style={{ display: 'none' }} />
           <button className="px-4 py-3 rounded-md bg-slate-600 text-white font-semibold hover:bg-slate-700 transition-colors duration-200 text-sm" onClick={() => imageInputRef.current?.click()}>
             <div className="flex flex-row items-center gap-2 justify-center">
